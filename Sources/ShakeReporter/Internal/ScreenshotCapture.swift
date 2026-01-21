@@ -13,9 +13,11 @@ enum ScreenshotCapture {
             return nil
         }
 
+        // Use drawHierarchy which properly captures SwiftUI content
         let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-        return renderer.image { context in
-            window.layer.render(in: context.cgContext)
+        return renderer.image { _ in
+            // afterScreenUpdates: true ensures all pending UI updates are rendered
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
     }
 
