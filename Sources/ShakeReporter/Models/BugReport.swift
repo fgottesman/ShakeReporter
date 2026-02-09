@@ -25,7 +25,10 @@ public struct BugReportRequest: Codable {
     public let appId: String
     public let description: String
     public let priority: BugReportPriority
-    public let screenshotBase64: String?
+    
+    /// Array of base64-encoded screenshot images
+    public let screenshotBase64s: [String]?
+    
     public let appVersion: String?
     public let buildNumber: String?
     public let iosVersion: String?
@@ -36,7 +39,7 @@ public struct BugReportRequest: Codable {
         appId: String,
         description: String,
         priority: BugReportPriority,
-        screenshotBase64: String? = nil,
+        screenshotBase64s: [String]? = nil,
         appVersion: String? = nil,
         buildNumber: String? = nil,
         iosVersion: String? = nil,
@@ -46,7 +49,7 @@ public struct BugReportRequest: Codable {
         self.appId = appId
         self.description = description
         self.priority = priority
-        self.screenshotBase64 = screenshotBase64
+        self.screenshotBase64s = screenshotBase64s
         self.appVersion = appVersion
         self.buildNumber = buildNumber
         self.iosVersion = iosVersion

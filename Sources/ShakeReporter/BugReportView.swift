@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// SwiftUI view for submitting bug reports
+/// SwiftUI view for submitting bug reports with multiple screenshot support
 public struct BugReportView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -10,10 +10,14 @@ public struct BugReportView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showSuccess = false
+    
+    // Multiple screenshots support
+    @State private var screenshots: [UIImage]
+    @State private var selectedScreenshotIndex: Int? = nil
+    @State private var showAnnotationView = false
 
     private let appId: String
     private let service: BugReportService
-    private let screenshot: UIImage?
     private let screenName: String?
 
     public init(
@@ -24,24 +28,69 @@ public struct BugReportView: View {
     ) {
         self.appId = appId
         self.service = service
-        self.screenshot = screenshot
         self.screenName = screenName
+        // Initialize with the captured screenshot if provided
+        _screenshots = State(initialValue: screenshot.map { [$0] } ?? [])
     }
 
     public var body: some View {
         NavigationStack {
             Form {
-                // Screenshot preview (if available)
-                if let screenshot = screenshot {
-                    Section {
-                        Image(uiImage: screenshot)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxHeight: 200)
-                            .cornerRadius(8)
-                    } header: {
-                        Text("Screenshot")
+                // Screenshots section
+                Section {
+                    if screenshots.isEmpty {
+                        // Empty state with add button
+                        Button {
+                            captureNewScreenshot()
+                        } label: {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                Text("Capture Screenshot")
+                            }
+                            .foregroundColor(.accentColor)
+                        }
+                    } else {
+                        // Screenshot grid/list
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(Array(screenshots.enumerated()), id: \.offset) { index, image in
+                                    ScreenshotThumbnail(
+                                        image: image,
+                                        onTap: {
+                                            selectedScreenshotIndex = index
+                                            showAnnotationView = true
+                                        },
+                                        onDelete: {
+                                            withAnimation {
+                                                screenshots.remove(at: index)
+                                            }
+                                        }
+                                    )
+                                }
+                                
+                                // Add more button
+                                Button {
+                                    captureNewScreenshot()
+                                } label: {
+                                    VStack {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 30))
+                                        Text("Add")
+                                            .font(.caption)
+                                    }
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 80, height: 100)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(8)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
+                } header: {
+                    Text("Screenshots")
+                } footer: {
+                    Text("Tap a screenshot to annotate it")
                 }
 
                 // Description
@@ -121,6 +170,15 @@ public struct BugReportView: View {
             } message: {
                 Text("Your bug report has been submitted. We'll look into it!")
             }
+            .sheet(isPresented: $showAnnotationView) {
+                if let index = selectedScreenshotIndex, index < screenshots.count {
+                    if #available(iOS 16.0, *) {
+                        ScreenshotAnnotationView(image: screenshots[index]) { annotatedImage in
+                            screenshots[index] = annotatedImage
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -131,23 +189,28 @@ public struct BugReportView: View {
         case .high: return .red
         }
     }
+    
+    private func captureNewScreenshot() {
+        // Capture current screen
+        if let newScreenshot = ScreenshotCapture.captureScreen() {
+            withAnimation {
+                screenshots.append(newScreenshot)
+            }
+        }
+    }
 
     private func submitReport() async {
         isSubmitting = true
 
-        // Prepare screenshot
-        let screenshotBase64: String?
-        if let screenshot = screenshot {
-            screenshotBase64 = ScreenshotCapture.imageToBase64(screenshot)
-        } else {
-            screenshotBase64 = nil
-        }
+        // Convert all screenshots to base64
+        let screenshotBase64s: [String]? = screenshots.isEmpty ? nil :
+            screenshots.compactMap { ScreenshotCapture.imageToBase64($0) }
 
         let request = BugReportRequest(
             appId: appId,
             description: description.trimmingCharacters(in: .whitespacesAndNewlines),
             priority: priority,
-            screenshotBase64: screenshotBase64,
+            screenshotBase64s: screenshotBase64s,
             appVersion: DeviceInfo.appVersion,
             buildNumber: DeviceInfo.buildNumber,
             iosVersion: DeviceInfo.iosVersion,
@@ -169,5 +232,41 @@ public struct BugReportView: View {
         }
 
         isSubmitting = false
+    }
+}
+
+// MARK: - Screenshot Thumbnail Component
+
+private struct ScreenshotThumbnail: View {
+    let image: UIImage
+    let onTap: () -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 80, height: 100)
+                .clipped()
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.systemGray4), lineWidth: 1)
+                )
+                .onTapGesture {
+                    onTap()
+                }
+            
+            // Delete button
+            Button {
+                onDelete()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white, .red)
+            }
+            .offset(x: 6, y: -6)
+        }
     }
 }
