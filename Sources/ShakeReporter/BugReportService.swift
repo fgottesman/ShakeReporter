@@ -15,7 +15,9 @@ public actor BugReportService {
 
     /// Submit a bug report to the API
     public func submitReport(_ report: BugReportRequest) async throws -> BugReportResponse {
-        let url = URL(string: "\(apiEndpoint)/bug-reports")!
+        guard let url = URL(string: "\(apiEndpoint)/bug-reports") else {
+            throw BugReportError.invalidResponse
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

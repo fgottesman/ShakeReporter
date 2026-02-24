@@ -49,7 +49,7 @@ public struct ScreenshotAnnotationView: View {
             .navigationTitle("Annotate")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
@@ -93,7 +93,7 @@ public struct ScreenshotAnnotationView: View {
                         dismiss()
                     }
                 }
-            }
+            })
         }
     }
     

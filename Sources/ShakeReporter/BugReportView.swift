@@ -136,7 +136,7 @@ public struct BugReportView: View {
             }
             .navigationTitle("Report a Bug")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
@@ -150,7 +150,7 @@ public struct BugReportView: View {
                     }
                     .disabled(description.trimmingCharacters(in: .whitespacesAndNewlines).count < 5 || isSubmitting)
                 }
-            }
+            })
             .overlay {
                 if isSubmitting {
                     ProgressView("Submitting...")
