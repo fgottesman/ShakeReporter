@@ -62,7 +62,7 @@ public struct BugReportView: View {
                                         },
                                         onDelete: {
                                             withAnimation {
-                                                screenshots.remove(at: index)
+                                                let _ = screenshots.remove(at: index)
                                             }
                                         }
                                     )
@@ -136,21 +136,21 @@ public struct BugReportView: View {
             }
             .navigationTitle("Report a Bug")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
-                ToolbarItem(placement: .cancellationAction) {
+            .toolbar(id: "bugReportToolbar") {
+                ToolbarItem(id: "cancel", placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .disabled(isSubmitting)
                 }
 
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(id: "submit", placement: .confirmationAction) {
                     Button("Submit") {
                         Task { await submitReport() }
                     }
                     .disabled(description.trimmingCharacters(in: .whitespacesAndNewlines).count < 5 || isSubmitting)
                 }
-            })
+            }
             .overlay {
                 if isSubmitting {
                     ProgressView("Submitting...")
